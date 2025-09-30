@@ -1,0 +1,65 @@
+<project name="batch_junit" default="test" basedir=".">
+    <property name="src" location=""/>
+    <property name="test" location=""/>
+
+    <property name="build.classes" location="build/main"/>
+    <property name="build.testclasses" location="build/test"/>
+    <property name="lib_path" value=""/>
+    <property name="junit.haltonfailure" location="no"/>
+
+    <property name="junit.jar" location="../junit-4.12.jar"/>
+    <property name="hamcrest.jar" location="../hamcrest-core-1.3.jar"/>
+    <property name="evosuite.jar" location="../evosuite-1.0.6.jar"/>
+
+    <path id="build.classpath">
+        <pathelement location="${lib_path}"/>
+        <pathelement location="${build.classes}"/>
+        <pathelement location="${junit.jar}"/>
+        <pathelement location="${hamcrest.jar}"/>
+    </path>
+    <path id="testbuild.classpath">
+        <path refid="build.classpath"/>
+        <pathelement location="${build.testclasses}"/>
+        <pathelement location="${evosuite.jar}"/>
+    </path>
+    <target name="compile">
+        <mkdir dir="${build.classes}"/>
+        <javac debug="true" debuglevel="lines,source" srcdir="${src}" destdir="${build.classes}"
+               classpathref="build.classpath" includeantruntime="false"/>
+        <copy todir="${build.classes}">
+            <fileset dir="${src}" excludes="**/*.java"/>
+        </copy>
+        <mkdir dir="${build.testclasses}"/>
+        <javac debug="true" debuglevel="lines,source" srcdir="${test}" destdir="${build.testclasses}"
+               classpathref="testbuild.classpath" includeantruntime="false"/>
+    </target>
+
+    <target name="batchtest">
+        <junit fork="yes" forkmode="once" printsummary="true" maxmemory="1024m">
+            <classpath refid="testbuild.classpath"/>
+            <formatter type="xml"/>
+            <batchtest fork="yes" todir="${build.testclasses}">
+                <fileset dir="${build.testclasses}">
+                    <include name="**/*ESTest.class"/>
+                </fileset>
+            </batchtest>
+        </junit>
+        <junitreport>
+            <fileset dir="${build.testclasses}">
+                <include name="TEST-*.xml"/>
+            </fileset>
+            <report format="noframes" todir="${build.testclasses}"/>
+        </junitreport>
+    </target>
+
+    <target name="clean">
+        <delete>
+            <fileset dir="${src}/..">
+                <include name="batch.test.*.flag"/>
+            </fileset>
+        </delete>
+        <delete dir="${build.classes}"/>
+        <delete dir="${build.testclasses}"/>
+    </target>
+    <target name="batchtest.all" depends="clean, compile ,batchtest"/>
+</project>

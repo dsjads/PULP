@@ -1,0 +1,5 @@
+C:/Users/zhangt/Desktop/SPLC2021_Full_Dataset/BuggyVersions/BankAccountTP/4wise-BankAccountTP-1BUG-Full
+total labeled cases: 41
+num of failing variants: 5.853658536585366
+num of false passing variants: 10.146341463414634
+num of true passing variants: 18.0

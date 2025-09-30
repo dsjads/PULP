@@ -1,0 +1,14 @@
+# Created by .ignore support plugin (hsz.mobi)
+
+**/configs
+**/variants
+**/mutation_result
+**/mutated_projects
+.DS_Store
+*.order
+*.csv
+*.log
+.idea
+.clover
+.evosuite
+evosuite-report

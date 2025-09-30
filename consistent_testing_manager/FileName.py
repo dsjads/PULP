@@ -1,0 +1,8 @@
+variant_labels = "variant_labels.csv"
+attribute_temp_file = "attribute_temp_file.csv"
+attribute_file = "attributes.csv"
+classified_all_cases_file = "classified_all_cases_v1301.csv"
+classified_testing_file = "classified_testing_v1301.csv"
+classified_single_bug_file = "classified_1bug.csv"
+classified_by_systems_file = "classified_by_systems.csv"
+classified_by_only_a_system_file = "classified_by_only_a_system_file.csv"
