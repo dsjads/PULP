@@ -161,7 +161,7 @@ def get_infor_for_sbfl(mutated_project_dir, failing_variants, fp_variants, spect
 
     return stm_info_for_spectrum, total_passed_tests, total_failed_tests
 
-
+# fp detection的结果
 def get_infor_for_sbfl_with_FP_detection(mutated_project_dir, failing_variants, fp_variants, sups_in_variants,
                                          add_more_tests,
                                          keep_useful_tests,

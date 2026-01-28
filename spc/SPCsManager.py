@@ -65,7 +65,9 @@ def detect_SPCs(feature_names, passed_configs, failed_configs, variant_names, va
                             spc_failed_configs = find_failed_configs_contains_spc(current_SPC,
                                                                                                 failed_configs)
                             for spc_config in spc_failed_configs:
-                                spc_log_file.write(f"{combined_spc}; {get_src_dir(join_path(variants_dir, variant_names[tuple(spc_config)]))}\n")
+                                src_dir = get_src_dir(join_path(variants_dir, variant_names[tuple(spc_config)]))
+                                src_dir = src_dir.replace('\\', '/')
+                                spc_log_file.write(f"{combined_spc}; {src_dir}\n")
                             # print()
                             # print(f"{combined_spc}")
                             cached_spc.append(combined_spc)

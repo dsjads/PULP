@@ -5,8 +5,6 @@ from multiprocessing import Pool
 
 import pandas
 from sklearn import preprocessing
-from torch.ao.nn.quantized.functional import threshold
-
 from FileManager import *
 from consistent_testing_manager.DDU import ddu
 from consistent_testing_manager.FeatureExtraction import calculate_cr
@@ -40,6 +38,20 @@ incorrectness_verifiability = "incorrectness_verifiability"
 correctness_reflectability = "correctness_reflectability"
 
 bug_involving_statements = "bug_involving_statements"
+
+
+CLASSIFY_ATTRIBUTES = [DDU, code_coverage,
+                       incorrectness_verifiability,
+                       correctness_reflectability,
+                       buggy_statement_containing_possibility,
+                       bug_involving_statements]
+
+FIELDS = [VARIANT_NAME, LABEL, DDU,
+          code_coverage,
+          incorrectness_verifiability,
+          correctness_reflectability,
+          buggy_statement_containing_possibility,
+          bug_involving_statements]
 
 
 def get_variants_and_labels(mutated_project_dir, label_file):
@@ -277,14 +289,19 @@ def ranking_suspicious_stmts(project_dir, failing_variants):
     all_stms_f_products_set = get_set_of_stms(search_spaces)
     full_ranked_list = sbfl_ranking(stm_info_for_sbfl, total_failed_tests, total_passed_tests,
                                     all_stms_f_products_set,
-                                    [JACCARD, TARANTULA, OCHIAI, OP2, DSTAR, BARINEL, RUSSELL_RAO, GP02, GP03, GP19])
-    full_ranked_map_list = []
-    for ranked_list in full_ranked_list.values():
-        temp_ranked_map = {}
-        for (stmt, score, v) in ranked_list:
-            temp_ranked_map[stmt] = score
-        full_ranked_map_list.append(temp_ranked_map)
-    return full_ranked_map_list
+                                    [OCHIAI])
+                                    # [JACCARD, TARANTULA, OCHIAI, OP2, DSTAR, BARINEL, RUSSELL_RAO, GP02, GP03, GP19])
+    # full_ranked_map_list = []
+    # for ranked_list in full_ranked_list.values():
+    #     temp_ranked_map = {}
+    #     for (stmt, score, v) in ranked_list:
+    #         temp_ranked_map[stmt] = score
+    #     full_ranked_map_list.append(temp_ranked_map)
+    # return full_ranked_map_list
+    op2_ranked_list = {}
+    for (stmt, score, v) in full_ranked_list[OCHIAI]:
+        op2_ranked_list[stmt] = score
+    return op2_ranked_list
 
 
 def check_total_susp_scores_in_passing_variant(susp_scores, passing_variant_stmt):
@@ -464,6 +481,36 @@ def normalization2(project_dir, attribute_file, attribute_normalized_file):
     # 保存归一化后的数据，不保留索引列
     data.to_csv(consistent_testing_info_normalized_file, index=False)
 
+def append_features_to_attribute_file(project_dir, attribute_file, attribute_normalized_file):
+    consistent_testing_info_file_path = join_path(project_dir, attribute_file)
+    consistent_testing_info_normalized_file = join_path(project_dir, attribute_normalized_file)
+    data = pandas.read_csv(consistent_testing_info_file_path)
+
+    # 确定需要归一化的列（排除'model'和'LABEL'）
+    columns_to_normalize = [col for col in data.columns if col not in ['model', 'LABEL']]
+
+    # 对每列进行最小-最大归一化 (Min-Max Normalization)
+    for col in columns_to_normalize:
+        # 获取当前列的最小值和最大值
+        col_min = data[col].min()
+        col_max = data[col].max()
+
+        # 处理极端情况：如果所有值都相同（避免除以0）
+        if col_max == col_min:
+            data[col] = 0.0  # 全部归一化为0
+        else:
+            # 归一化公式：(x - min) / (max - min)，将值缩放到[0, 1]区间
+            data[col] = (data[col] - col_min) / (col_max - col_min)
+    cols_to_drop = ["correctness_reflectability_0", "correctness_reflectability_1","correctness_reflectability_2","correctness_reflectability_3",
+                    "correctness_reflectability_4","correctness_reflectability_5","correctness_reflectability_6","correctness_reflectability_7",
+                    "correctness_reflectability_8","correctness_reflectability_9"]
+    target_df = pandas.read_csv(consistent_testing_info_normalized_file)
+    target_df = target_df.drop(columns=cols_to_drop, axis=1, errors='ignore')
+    concatenated_df = pandas.concat([target_df, data.iloc[:,2:]], axis=1, ignore_index=False)
+    # 保存归一化后的数据，不保留索引列
+    concatenated_df.to_csv(consistent_testing_info_normalized_file, index=False)
+
+
 def calculate_attributes(project_dir, label_file, attribute_temp_file,
                          attribute_normalized_file, FIELDS):
     if not os.path.isfile(join_path(project_dir, label_file)):
@@ -535,16 +582,24 @@ def calculate_attributes_from_system_paths(system_paths):
             if not os.path.exists(sys_path):
                 continue
             mutated_projects = list_dir(sys_path)
+            # pool = Pool(8)
             for mutated_project in mutated_projects:
                 mu_project_path = join_path(sys_path, mutated_project)
-                print(mu_project_path)
                 label_file_path = "variant_labels.csv"
-                attributes_temp_path = join_path(mu_project_path, "attributes_temp.csv")
-                attributes_path = join_path(mu_project_path, "attributes.csv")
-                print(label_file_path)
-                FIELDS = ["model","LABEL","bscp","bug_involving_statements","code_coverage","correctness_reflectability","incorrectness_verifiability"]
-                # calculate_attributes(mu_project_path, label_file_path, attributes_temp_path, attributes_path, FIELDS=FIELDS)
-                calculate_attributes3(mu_project_path, label_file_path, attributes_temp_path,  attributes_path , FIELDS=FIELDS)
+                attributes_temp_path = join_path(mu_project_path, "attributes_temp-clap.csv")
+                attributes_path = join_path(mu_project_path, "attributes-clap.csv")
+                calculate_attributes(mu_project_path, label_file_path, attributes_temp_path, attributes_path, FIELDS = FIELDS)
+                # calculate_attributes3(mu_project_path, label_file_path, attributes_temp_path, attributes_path)
+                # if not os.path.isfile(attributes_path):
+                #     print(attributes_path)
+                # pool.apply_async(calculate_cc, (mu_project_path, label_file_path, attributes_temp_path, attributes_path))
+                # calculate_cc(mu_project_path, label_file_path, attributes_temp_path, attributes_path)
+                # if not os.path.isfile(attributes_path):
+                #     print(attributes_path)
+                    # FIELDS = ["model", "LABEL", "bscp", "bug_involving_statements", "code_coverage", "correctness_reflectability", "incorrectness_verifiability"]
+                    #  calculate_attributes(mu_project_path, label_file_path, attributes_temp_path, attributes_path, FIELDS=FIELDS)
+            # pool.close()
+            # pool.join()
 
 def filter_out_current_variants(failed_executions_in_failing_products, passed_executions_in_failing_products, v):
     filtered_failed = {k: v_data for k, v_data in failed_executions_in_failing_products.items() if k != v}
@@ -555,7 +610,6 @@ def filter_out_current_variants(failed_executions_in_failing_products, passed_ex
 def normalized_dict(input_dict):
     keys = list(input_dict.keys())
     values = list(input_dict.values())
-
     # 处理空字典边界情况
     if not keys:
         print("警告：输入字典为空，无法计算平均值")
@@ -577,13 +631,12 @@ def normalized_dict(input_dict):
     return normalized_dict
 
 
-def calculate_attributes3(project_dir, label_file, attribute_temp_file,  attribute_normalized_file, FIELDS):
+def calculate_attributes3(project_dir, label_file, attribute_temp_file,  attribute_normalized_file):
     if not os.path.isfile(join_path(project_dir, label_file)):
         return
     attribute_data = {}
     failing_variants = get_labeled_failing_variants(project_dir, label_file)
     system_stm_ids = get_all_stm_ids(project_dir)
-    # {model:[{},{}...]}
     failed_executions_in_failing_products = get_failings_executions(project_dir, system_stm_ids,
                                                                     failing_variants)
     passed_executions_in_failing_products = get_passing_executions(project_dir, system_stm_ids,
@@ -598,14 +651,14 @@ def calculate_attributes3(project_dir, label_file, attribute_temp_file,  attribu
         susp_in_variants[v] = check_suspicious_stmts_in_passing_variants(
             new_failed_executions_in_failing_products, system_stm_ids[v])
         attribute_data[v][LABEL] = variants_and_labels[v][LABEL]
+        passed_executions_in_passing_product = get_passing_executions_in_a_variant(project_dir,
+                                                                                   system_stm_ids, v)
         for index, susp_scores_in_system in enumerate(full_ranked_list):
             susp_scores_in_system = normalized_dict(susp_scores_in_system)
             attribute_data[v][code_coverage+"_"+str(index)] = calculate_cr(susp_in_variants[v], susp_scores_in_system,system_stm_ids[v])
             attribute_data[v][incorrectness_verifiability+"_"+str(index)] = check_similarity_score(
                 new_failed_executions_in_failing_products, susp_in_variants[v], susp_scores_in_system
             )
-            passed_executions_in_passing_product = get_passing_executions_in_a_variant(project_dir,
-                                                                                       system_stm_ids, v)
             # bscp
             attribute_data[v][buggy_statement_containing_possibility+"_"+str(index)] = check_total_susp_scores_in_passing_variant(
                 susp_scores_in_system, system_stm_ids[v]
@@ -616,16 +669,49 @@ def calculate_attributes3(project_dir, label_file, attribute_temp_file,  attribu
                                                                          susp_scores_in_system)
             attribute_data[v][bug_involving_statements+"_"+str(index)] = dependencies_similarity["Both"]
 
-        threshold_list = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+        threshold_list = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45]
         for threshold in threshold_list:
             # correctness_reflectability
-            attribute_data[v][correctness_reflectability + "_" + str(int(threshold*10))] = check_correctness_reflectability(
+            attribute_data[v][correctness_reflectability + "_" + str(threshold*10)] = check_correctness_reflectability(
                 new_failed_executions_in_failing_products, new_passed_executions_in_failing_products,
                 passed_executions_in_passing_product, susp_in_variants[v], threshold
             )
     attribute_data = organize_features(attribute_data)
     write_dict_to_file2(join_path(project_dir, attribute_temp_file), attribute_data)
     normalization2(project_dir, attribute_temp_file, attribute_normalized_file)
+    os.remove(join_path(project_dir, attribute_temp_file))
+
+def calculate_cc(project_dir, label_file, attribute_temp_file,  attribute_normalized_file):
+    if not os.path.isfile(join_path(project_dir, label_file)):
+        return
+    attribute_data = {}
+    failing_variants = get_labeled_failing_variants(project_dir, label_file)
+    system_stm_ids = get_all_stm_ids(project_dir)
+    failed_executions_in_failing_products = get_failings_executions(project_dir, system_stm_ids,
+                                                                    failing_variants)
+    passed_executions_in_failing_products = get_passing_executions(project_dir, system_stm_ids,
+                                                                   failing_variants)
+    variants_and_labels = get_variants_and_labels(project_dir, label_file)
+    susp_in_variants = {}
+    for v in system_stm_ids:
+        attribute_data[v] = {}
+        new_failed_executions_in_failing_products, new_passed_executions_in_failing_products = filter_out_current_variants(
+            failed_executions_in_failing_products, passed_executions_in_failing_products, v)
+        susp_in_variants[v] = check_suspicious_stmts_in_passing_variants(
+            new_failed_executions_in_failing_products, system_stm_ids[v])
+        attribute_data[v][LABEL] = variants_and_labels[v][LABEL]
+        passed_executions_in_passing_product = get_passing_executions_in_a_variant(project_dir,
+                                                                                   system_stm_ids, v)
+        threshold_list = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45]
+        for i, threshold in enumerate(threshold_list):
+            attribute_data[v][
+                correctness_reflectability + "_" + str(i)] = check_correctness_reflectability(
+                new_failed_executions_in_failing_products, new_passed_executions_in_failing_products,
+                passed_executions_in_passing_product, susp_in_variants[v], threshold
+            )
+    attribute_data = organize_features(attribute_data)
+    write_dict_to_file2(join_path(project_dir, attribute_temp_file), attribute_data)
+    append_features_to_attribute_file(project_dir, attribute_temp_file, attribute_normalized_file)
     os.remove(join_path(project_dir, attribute_temp_file))
 
 def organize_features(attribute_data):
@@ -675,23 +761,4 @@ def do_slicing_statements(system_paths):
 
 def error_callback(error):
     print(f"Error info: {error}")
-
-
-if __name__ == '__main__':
-    system_paths = defaultdict(dict)
-    system_paths["BankAccountTP"][
-        "1Bug"] = "C:/Users/zhangt/Desktop/SPLC2021_Full_Dataset/BuggyVersions/BankAccountTP/4wise-BankAccountTP-1BUG-Full"
-    for system in system_paths:
-        for bug in system_paths[system]:
-            sys_path = system_paths[system][bug]
-            if not os.path.exists(sys_path):
-                continue
-            mutated_projects = list_dir(sys_path)
-            for mutated_project in mutated_projects:
-                mu_project_path = join_path(sys_path, mutated_project)
-                label_file_path = "variant_labels.csv"
-                attributes_temp_path = join_path(mu_project_path, "attributes_temp2.csv")
-                attributes_path = join_path(mu_project_path, "attributes2.csv")
-                FIELDS = ["model","LABEL","DDU","bscp","bug_involving_statements","code_coverage","correctness_reflectability","incorrectness_verifiability"]
-                calculate_attributes(mu_project_path, label_file_path, attributes_temp_path,  attributes_path , FIELDS=FIELDS)
 

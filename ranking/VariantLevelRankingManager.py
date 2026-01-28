@@ -49,6 +49,7 @@ def get_num_passing_failing_variants(mutated_project_dir, failing_variants, fp_v
     total_fails = 0
     total_passes = 0
     for variant_dir in variants_list:
+        variant_dir = variant_dir.replace("\\","/")
         test_coverage_dir = get_test_coverage_dir(variant_dir)
         spectrum_failed_file = get_spectrum_failed_coverage_file_name_with_version(spectrum_coverage_prefix)
         spectrum_failed_coverage_file_dir = join_path(test_coverage_dir, spectrum_failed_file)

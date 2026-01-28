@@ -109,6 +109,4 @@ def write_comparison_data_to_file(file_path, comparison_data):
         sheets.append(wb.add_worksheet(sheet_name))
         write_comparison(sheets[index], comparison_data, metrics)
         index += 1
-
-
     wb.close()

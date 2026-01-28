@@ -353,6 +353,12 @@ def list_dir(current_dir, full_path=False, sort=False):
         files.sort()
     return files
 
+def list_files(current_path):
+    files = list(os.listdir(current_path))
+    files = [join_path(current_path, file) for file in files]
+
+    return files
+
 
 def get_failing_variants(mutated_project_dir):
     variants_dir = get_variants_dir(mutated_project_dir)

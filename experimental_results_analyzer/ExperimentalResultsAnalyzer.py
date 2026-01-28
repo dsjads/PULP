@@ -43,7 +43,6 @@ SPECTRUM_EXPRESSIONS_LIST = [TARANTULA, OCHIAI, OP2, BARINEL, DSTAR]
 
 def write_all_bugs_to_a_file(summary_file_dir, file_lists, num_of_bugs, base_path):
     writer = pandas.ExcelWriter(summary_file_dir, engine='openpyxl')
-
     row = 0
     num_of_file = 0
     for file in file_lists:
@@ -67,7 +66,7 @@ def write_all_bugs_to_a_file(summary_file_dir, file_lists, num_of_bugs, base_pat
                                                                          index=False)
                     row += len(excel_data_df[TARANTULA]) + 1
 
-    writer.save()
+    writer._save()
 
 
 def summary_hitx(hitx_file_dir, all_bugs_file_dir, hitn):
@@ -354,3 +353,18 @@ def get_values_of_a_case(excel_data_df, sbfl_metric, index, column_list):
             list_of_values[metric].append(excel_data_df[sbfl_metric][metric][index])
         index += 1
     return list_of_values, index
+
+if __name__ == "__main__":
+    summary_dir = "D:/splfl/summary/summary.xlsx"
+    exam_dir = "D:/splfl/summary/exam.xlsx"
+    file_list = ["D:/splfl/BankAccountTP/ENABLE_NORMALIZATION/AGGREGATION_ARITHMETIC_MEAN/add_test2",
+                 "D:/splfl/Elevator/ENABLE_NORMALIZATION/AGGREGATION_ARITHMETIC_MEAN/add_test2",
+                 "D:/splfl/Email/ENABLE_NORMALIZATION/AGGREGATION_ARITHMETIC_MEAN/add_test2",
+                 "D:/splfl/ExamDB/ENABLE_NORMALIZATION/AGGREGATION_ARITHMETIC_MEAN/add_test2",
+                 "D:/splfl/GPL/ENABLE_NORMALIZATION/AGGREGATION_ARITHMETIC_MEAN/add_test2",
+                 "D:/splfl/ZipMe/ENABLE_NORMALIZATION/AGGREGATION_ARITHMETIC_MEAN/add_test2",
+                 ]
+    num_of_bugs = ["1Bug", "2Bug", "3Bug"]
+    # write_all_bugs_to_a_file(summary_dir, file_list, num_of_bugs, "")
+    summary_result(summary_dir, exam_dir, "")
+

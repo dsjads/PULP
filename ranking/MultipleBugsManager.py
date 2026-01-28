@@ -1,4 +1,5 @@
 import os
+from multiprocessing import Pool
 
 from xlsxwriter import Workbook
 
@@ -158,9 +159,43 @@ def create_exp_result_folder(result_folder, system_name):
         os.makedirs(system_result_dir)
     return system_result_dir
 
+def multiple_slicing(system_dir, add_more_tests, FP_detection, filtering_coverage_rate=0.1, coverage_version=""):
+    mutated_projects = list_dir(system_dir)
+    num_of_bugs = 0
+    pool = Pool(8)
+    for mutated_project in mutated_projects:
+        mutated_project_dir = join_path(system_dir, mutated_project)
+        classified_file_path = join_path(mutated_project_dir, classified_testing_file)
+        label_file = join_path(mutated_project_dir, variant_labels)
+        if not os.path.isfile(classified_file_path) or not os.path.isfile(label_file):
+            continue
+        num_of_bugs += 1
+
+        failing_variants = get_failing_variants_by_labels(label_file, LABEL)
+        if FP_detection and not add_more_tests:
+            FP_variants = get_fp_variants(classified_file_path)
+            spc_postfix = "remove_fps"
+        elif FP_detection and add_more_tests:
+            FP_variants = get_fp_variants(classified_file_path)
+            spc_postfix = "add_more_tests"
+        else:
+            FP_variants = []
+            spc_postfix = "original"
+
+        pool.apply_async(suspicious_isolation, (mutated_project_dir, failing_variants, FP_variants, add_more_tests,
+                             filtering_coverage_rate,
+                             coverage_version, spc_postfix))
+        # suspicious_isolation(mutated_project_dir, failing_variants, FP_variants, add_more_tests,
+        #                      filtering_coverage_rate,
+        #                      coverage_version, spc_postfix)
+    pool.close()
+    pool.join()
+
+
+
 
 def multiple_bugs_ranking(result_folder, system_name, system_dir, num_of_bugs, kwise, spectrum_expressions,
-                          FP_detection, classified_file_name, alpha=0.5, add_more_tests=False, keep_useful_tests=False,
+                          FP_detection, classified_file_name, alpha=0.5, add_more_tests=False, keep_useful_tests=True,
                           filtering_coverage_rate=0.0, coverage_version=""):
     aggregations = [RankingManager.AGGREGATION_ARITHMETIC_MEAN]
     normalizations = [RankingManager.NORMALIZATION_ALPHA_BETA]
@@ -186,9 +221,7 @@ def multiple_bugs_ranking(result_folder, system_name, system_dir, num_of_bugs, k
                 os.makedirs(kwise_result_dir)
 
             sheet = []
-
             row = 0
-
             experiment_file_name = join_path(kwise_result_dir,
                                              num_of_bugs + coverage_version + ".xlsx")
 
@@ -221,8 +254,8 @@ def multiple_bugs_ranking(result_folder, system_name, system_dir, num_of_bugs, k
                     FP_variants = []
                     spc_postfix = "original"
 
-                # suspicious_isolation(mutated_project_dir, failing_variants, FP_variants, add_more_tests, filtering_coverage_rate,
-                #                      coverage_version, spc_postfix)
+                suspicious_isolation(mutated_project_dir, failing_variants, FP_variants, add_more_tests, filtering_coverage_rate,
+                                       coverage_version, spc_postfix)
                 search_spaces = get_suspicious_space(mutated_project_dir, failing_variants, FP_variants, add_more_tests,
                                                      filtering_coverage_rate, coverage_version, spc_postfix)
                 buggy_statements = get_multiple_buggy_statements(mutated_project_name, mutated_project_dir)
@@ -251,6 +284,8 @@ def multiple_bugs_ranking(result_folder, system_name, system_dir, num_of_bugs, k
                                                                     FP_variants, add_more_tests,
                                                                     search_spaces,
                                                                     filtering_coverage_rate, spectrum_expressions)
+
+                # print(fb_ranking_results)
 
                 for metric in range(0, len(spectrum_expressions)):
                     sheet[metric].write(row_temp, BUG_ID_COL, mutated_project_name)

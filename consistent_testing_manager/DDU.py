@@ -68,6 +68,8 @@ def matrix_density(matrix):
         M = len(matrix[key])
         for a in matrix[key]:
             sum += matrix[key][a]
+    if N*M == 0:
+        return 0
     return sum / (N * M)
 
 
@@ -110,6 +112,8 @@ def diversity(matrix):
         if same_activity_tests[key] > 0:
             count += 1
             sum += same_activity_tests[key] * (same_activity_tests[key] - 1)
+    if N * (N - 1) == 0:
+        return 0
     diversity_metric = 1 - (sum / (N * (N - 1)))
     return diversity_metric
 

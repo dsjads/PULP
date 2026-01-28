@@ -1,37 +1,17 @@
-import os
 import random
-from collections import Counter
-
-import pandas
 from sklearn import svm
-from sklearn.cluster import KMeans, DBSCAN
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import metrics
-from xlsxwriter import Workbook
-import matplotlib.pyplot as plt
 
 from consistent_testing_manager.FPMatricsCaculation import *
-import numpy as np
 from consistent_testing_manager.FileName import *
+from fp_detection.BaseClassifier import overall_performance_measurement
 
 from ranking.MultipleBugsManager import get_failing_variants_by_labels
-
-CLASSIFY_ATTRIBUTES = [DDU, code_coverage,
-                       incorrectness_verifiability,
-                       correctness_reflectability,
-                       buggy_statement_containing_possibility,
-                       bug_involving_statements]
-
-FIELDS = [VARIANT_NAME, LABEL, DDU,
-          code_coverage,
-          incorrectness_verifiability,
-          correctness_reflectability,
-          buggy_statement_containing_possibility,
-          bug_involving_statements]
 
 
 def labeled_cases_count(system_dir):
@@ -83,13 +63,15 @@ def load_data_for_system_based_classification(training_systems, testing_systems,
                 test_temp.append(df)
                 test_sample[system].append(project)
     train_result = pandas.concat(train_temp)
-    train_data = train_result[attributes].to_numpy()
+    train_data = train_result.iloc[:, 2:]
+    # train_data = train_result[attributes].to_numpy()
     train_target = train_result[LABEL].to_numpy()
     train_target[train_target == TRUE_PASSING] = 0
     train_target[train_target == FALSE_PASSING] = 1
 
     test_result = pandas.concat(test_temp)
-    test_data = test_result[attributes].to_numpy()
+    test_data = test_result.iloc[:, 2:].to_numpy()
+    # test_data = test_result[attributes].to_numpy()
     test_target = test_result[LABEL].to_numpy()
     test_target[test_target == TRUE_PASSING] = 0
     test_target[test_target == FALSE_PASSING] = 1
@@ -107,6 +89,7 @@ def write_classified_result(y_pred, test_samples, variant_ratio, file_name):
             project_dir = join_path(system, project)
             attribute_file_path = join_path(project_dir, attribute_file)
             df = pandas.read_csv(attribute_file_path)
+            df = df[df[LABEL] != 'F']
             if variant_ratio == 0:
                 variants = df[VARIANT_NAME]
                 labels = df[LABEL]
@@ -126,29 +109,6 @@ def write_classified_result(y_pred, test_samples, variant_ratio, file_name):
                 predict_index += 1
             classified_file = join_path(project_dir, file_name)
             write_dict_to_file(classified_file, data, [VARIANT_NAME, LABEL, "Classified"])
-
-
-def overall_performance_measurement(y_test, y_pred, logfile):
-    TP_count = 0
-    TP_correct = 0
-    FP_count = 0
-    FP_correct = 0
-    predict_index = 0
-    for l in y_test:
-        if l == 1:
-            FP_count += 1
-            if y_pred[predict_index] == 1:
-                FP_correct += 1
-        else:
-            TP_count += 1
-            if y_pred[predict_index] == 0:
-                TP_correct += 1
-        predict_index += 1
-    logfile.write("tp_precision:" + str(TP_correct / (TP_correct + FP_count - FP_correct)) + "\n")
-    logfile.write("fp_precision: " + str(FP_correct / (FP_correct + TP_count - TP_correct)) + "\n")
-    logfile.write("tp_recall: " + str(TP_correct / TP_count) + "\n")
-    logfile.write("fp_recall: " + str(FP_correct / FP_count) + "\n")
-    logfile.write("-------------\n")
 
 
 def classify_by_svm(logfile, classified_result_file, X_train, X_test, y_train, y_test, test_samples=[]):
@@ -211,9 +171,6 @@ def classify_by_different_classifiers(logfile, classified_result_file, X_train, 
     logfile.write("Decision tree\n")
     classify_by_decisiontree(logfile, X_train, X_test, y_train, y_test)
 
-
-def load_data_for_version_based_classification2(logfile, attributes, all_versions):
-    pass
 
 def load_data_for_version_based_classification(logfile, attributes, all_versions):
     kfold = KFold(n_splits=5, shuffle=True)
@@ -302,64 +259,6 @@ def version_based_classification(system_paths):
     load_data_for_version_based_classification(logfile, CLASSIFY_ATTRIBUTES, all_versions)
     logfile.close()
 
-def product_based_classification2(system_paths):
-    logfile = open("statistics/product_based_kmeans.log", "w")
-    all_versions = []
-    for s in system_paths:
-        attribute_temp = []
-        for b in system_paths[s]:
-            mutated_projects = list_dir(system_paths[s][b])
-            for project in mutated_projects:
-                project_dir = join_path(system_paths[s][b], project)
-                attribute_file_path = join_path(project_dir, attribute_file)
-                if not os.path.isfile(attribute_file_path):
-                    continue
-                all_versions.append(project_dir)
-            random.shuffle(all_versions)
-            for version_dir in all_versions:
-                attribute_file_path = join_path(version_dir, attribute_file)
-                df = pandas.read_csv(attribute_file_path)
-                attribute_temp.append(df)
-        attributes = pandas.concat(attribute_temp)
-        target = attributes.iloc[:, 1].to_numpy()
-        data = attributes.iloc[:, 2:].to_numpy()
-        kmeans_clustering(data, target, logfile)
-
-def kmeans_clustering(data, target, logfile):
-    cluster_labels = simple_clustering(data, n_clusters=2)
-    f_count = {0: 0, 1: 0}
-    for label, true_lbl in zip(cluster_labels, target):
-        if true_lbl == "F":
-            f_count[label] += 1
-    target_cluster = 0 if f_count[0] >= f_count[1] else 1
-    print(f"F较多的目标簇: {target_cluster}（簇0F数量: {f_count[0]}, 簇1F数量: {f_count[1]}）")
-    pred = np.where(cluster_labels == target_cluster, "FP", "TP")
-    non_f_indices = np.where(target != "F")[0]
-    target = target[non_f_indices]
-    pred = pred[non_f_indices]
-    target[target == TRUE_PASSING] = 0
-    target[target == FALSE_PASSING] = 1
-    pred[pred == TRUE_PASSING] = 0
-    pred[pred == FALSE_PASSING] = 1
-    pred = pred.astype(int)
-    overall_performance_measurement(target, pred, logfile)
-
-def oneClass_clustering(data, target,logfile):
-    pass
-
-def isolationForest(data, target, logfile):
-    pass
-
-
-
-def simple_clustering(data, n_clusters = 2, random_state = None):
-    kmeans = KMeans(
-        n_clusters=2,
-        random_state = random_state,
-        n_init = 10
-    )
-    cluster_labels = kmeans.fit_predict(data)
-    return cluster_labels
 
 def product_based_classification(system_paths):
     logfile = open("statistics/product_based.log", "w")

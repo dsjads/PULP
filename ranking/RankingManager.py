@@ -228,7 +228,7 @@ def varcop(buggy_statements, local_scores, variant_level_suspiciousness, search_
                                                                            sliced_isolated_ranked_list,
                                                                            full_ranked_list)
 
-
+# core function
 def ranking_multiple_bugs(buggy_statements, mutated_project_dir, failing_variants, fp_variants, add_more_tests,
                           keep_useful_tests,
                           search_spaces,
@@ -264,9 +264,11 @@ def locate_multiple_bugs(buggy_statements, isolated_set, isolated_ranked_list,
     bugs = {}
     for stm in buggy_statements:
         bugs[stm] = {}
-        bugs[stm][RANK] = search_rank_worst_case_by_layer(stm, isolated_ranked_list)
+        bugs[stm][RANK] = search_rank_best_case_by_layer(stm, isolated_ranked_list)
+        # bugs[stm][RANK] = search_rank_worst_case_by_layer(stm, isolated_ranked_list)
         if bugs[stm][RANK] == STM_NOT_FOUND:
-            without_isolation_buggy_position = search_rank_worst_case_by_layer(stm, full_ranked_list)
+            without_isolation_buggy_position = search_rank_best_case_by_layer(stm, full_ranked_list)
+            # without_isolation_buggy_position = search_rank_worst_case_by_layer(stm, full_ranked_list)
             bugs[stm][RANK] = without_isolation_buggy_position + len(isolated_set)
             for i in range(0, without_isolation_buggy_position):
                 if full_ranked_list[i][0] in isolated_set:
@@ -678,4 +680,16 @@ def search_rank_worst_case_by_layer(stm, ranked_list):
                 else:
                     break
             return j + 1
+    return STM_NOT_FOUND
+
+def search_rank_best_case_by_layer(stm, ranked_list):
+    for i in range(len(ranked_list)):
+        if ranked_list[i][0] == stm:
+            k = i
+            while k > 0:
+                if ranked_list[k][1] == ranked_list[k - 1][1] and ranked_list[k][2] == ranked_list[k - 1][2]:
+                    k -= 1
+                else:
+                    break
+            return k + 1
     return STM_NOT_FOUND
