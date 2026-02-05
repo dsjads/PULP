@@ -45,9 +45,9 @@ if __name__ == "__main__":
     # system_paths["ZipMe"]["2Bug"] = "D:/BuggyVersions/ZipMe/4wise-ZipMe-2BUG-Full"
     # system_paths["ZipMe"]["3Bug"] = "D:/BuggyVersions/ZipMe/4wise-ZipMe-3BUG-Full"
     # label_data(system_paths)
-    fl_with_fp("D:/splfl/",system_paths)
+    fl_with_fp("/results/splfl/",system_paths)
     calculate_attributes_from_system_paths(system_paths)
-    # calculate_average_rank(system_paths, "D:/splfl/")
+    # calculate_average_rank(system_paths, "/results/splfl/")
     # do_generate_fl_results(system_paths)
     product_based_classification(system_paths, "statistics/product_hierarchicalClustering.log")
     # calculate_attributes_from_system_paths(system_paths)
