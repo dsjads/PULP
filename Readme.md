@@ -16,6 +16,6 @@ within_system_classification: system level false-passing products classification
 
 dataset_based_classification: cross-system level false-passing products classification
 
-fl_with_fp: fault localization after mitigation the effect of false-passing products
+fl_with_fp: designed for RQ3, fault localization after mitigation the effect of false-passing products
 
 Dataset can be found here: https://tuanngokien.github.io/splc2021/
