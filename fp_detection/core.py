@@ -65,7 +65,7 @@ def ablation_analysis(system_paths, log_path):
             total_target = np.concatenate((total_target, target)) if total_target.size > 0 else target
         overall_performance_measurement(total_target, total_pred, logfile, i)
 
-def product_based_classification2(system_paths, log_path):
+def product_based_classification(system_paths, log_path):
     logfile = open(log_path, "w")
     total_pred = np.array([])  # 初始化为空ndarray
     total_target = np.array([])
@@ -115,7 +115,7 @@ def product_based_classification2(system_paths, log_path):
     # classify_by_svm(logfile, classified_result_file, X_train, X_test, y_train, y_test, test_samples)
     # write_classified_result(total_pred, [], 0, classified_testing_file)
 
-def within_system_classification2(system_paths, log_path):
+def within_system_classification(system_paths, log_path):
     logfile = open(log_path, "w")
     total_pred = np.array([])  # 初始化为空ndarray
     total_target = np.array([])

@@ -3,8 +3,8 @@ from collections import defaultdict
 from PassingVariants_Classification import *
 from consistent_testing_manager.LabelData import label_data, do_label_statistics
 from fl.fl_evaluation import fl_with_fp, calculate_average_rank
-from fp_detection.core import product_based_classification2, dataset_based_classification, \
-    within_system_classification2, ablation_analysis
+from fp_detection.core import product_based_classification, dataset_based_classification, \
+    within_system_classification, ablation_analysis
 
 if __name__ == "__main__":
     system_paths = defaultdict(dict)
@@ -45,19 +45,19 @@ if __name__ == "__main__":
     # system_paths["ZipMe"]["2Bug"] = "D:/BuggyVersions/ZipMe/4wise-ZipMe-2BUG-Full"
     # system_paths["ZipMe"]["3Bug"] = "D:/BuggyVersions/ZipMe/4wise-ZipMe-3BUG-Full"
     # label_data(system_paths)
-    # fl_with_fp("D:/splfl/",system_paths)
+    fl_with_fp("D:/splfl/",system_paths)
     calculate_attributes_from_system_paths(system_paths)
     # calculate_average_rank(system_paths, "D:/splfl/")
     # do_generate_fl_results(system_paths)
-    # product_based_classification2(system_paths, "statistics/product_hierarchicalClustering.log")
+    product_based_classification(system_paths, "statistics/product_hierarchicalClustering.log")
     # calculate_attributes_from_system_paths(system_paths)
     # product_based_classification2(system_paths, "statistics/cr2.log")
-    # within_system_classification2(system_paths, "statistics/within_system_bagging.log")
+    within_system_classification(system_paths, "statistics/within_system_bagging.log")
     # version_based_classification2(system_paths)
     # do_slicing_statements(system_paths)
     # product_based_classification(system_paths)
     # within_system_classification(system_paths)
     # intrinsic_analysis(system_paths, system_name="BankAccountTP")
-    # ablation_analysis(system_paths, "statistics/ablation3.log")
+    ablation_analysis(system_paths, "statistics/ablation3.log")
     # system_based_classification(system_paths)
 
