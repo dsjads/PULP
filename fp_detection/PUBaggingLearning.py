@@ -69,6 +69,7 @@ class PUBaggingLearning(BaseClassifier):
             )
         elif self.base_estimator == 'svm':
             return SVC(
+                kernel='linear',
                 probability=True,
                 random_state=self.random_state,
                 class_weight='balanced'

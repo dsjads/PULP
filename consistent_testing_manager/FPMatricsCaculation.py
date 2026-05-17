@@ -2,7 +2,7 @@ import csv
 import json
 from collections import defaultdict
 from multiprocessing import Pool
-
+import time
 import pandas
 from sklearn import preprocessing
 from FileManager import *
@@ -82,7 +82,6 @@ def write_dict_to_file2(file_name, data):
         # 处理空数据情况
         if not data:
             return
-
         # 获取第一个item的features，确定基础列名
         first_item_key = next(iter(data.keys()))  # 第一个item的key
         first_item_features = data[first_item_key]  # 第一个item的features
@@ -513,6 +512,7 @@ def append_features_to_attribute_file(project_dir, attribute_file, attribute_nor
 
 def calculate_attributes(project_dir, label_file, attribute_temp_file,
                          attribute_normalized_file, FIELDS):
+    start_time = time.time()
     if not os.path.isfile(join_path(project_dir, label_file)):
         return
     attribute_data = {}
@@ -562,6 +562,8 @@ def calculate_attributes(project_dir, label_file, attribute_temp_file,
     write_dict_to_file(join_path(project_dir, attribute_temp_file), attribute_data, FIELDS)
     normalization(FIELDS, project_dir, attribute_temp_file, attribute_normalized_file)
     os.remove(join_path(project_dir, attribute_temp_file))
+    total_time = time.time() - start_time
+    print(f"[clap] Total time: {total_time:.4f}s")
 
 def average_feature_by_label(labels, values, target):
     sum = 0
@@ -632,6 +634,7 @@ def normalized_dict(input_dict):
 
 
 def calculate_attributes3(project_dir, label_file, attribute_temp_file,  attribute_normalized_file):
+    start_time = time.time()
     if not os.path.isfile(join_path(project_dir, label_file)):
         return
     attribute_data = {}
@@ -669,10 +672,10 @@ def calculate_attributes3(project_dir, label_file, attribute_temp_file,  attribu
                                                                          susp_scores_in_system)
             attribute_data[v][bug_involving_statements+"_"+str(index)] = dependencies_similarity["Both"]
 
-        threshold_list = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45]
+        threshold_list = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         for threshold in threshold_list:
             # correctness_reflectability
-            attribute_data[v][correctness_reflectability + "_" + str(threshold*10)] = check_correctness_reflectability(
+            attribute_data[v][f"{correctness_reflectability}_{int(threshold * 10)}"] = check_correctness_reflectability(
                 new_failed_executions_in_failing_products, new_passed_executions_in_failing_products,
                 passed_executions_in_passing_product, susp_in_variants[v], threshold
             )
@@ -680,6 +683,8 @@ def calculate_attributes3(project_dir, label_file, attribute_temp_file,  attribu
     write_dict_to_file2(join_path(project_dir, attribute_temp_file), attribute_data)
     normalization2(project_dir, attribute_temp_file, attribute_normalized_file)
     os.remove(join_path(project_dir, attribute_temp_file))
+    total_time = time.time() - start_time
+    print(f"[calculate_attributes] Total time: {total_time:.4f}s")
 
 def calculate_cc(project_dir, label_file, attribute_temp_file,  attribute_normalized_file):
     if not os.path.isfile(join_path(project_dir, label_file)):

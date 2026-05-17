@@ -245,6 +245,7 @@ def load_data_for_version_based_one_classifier(logfile, attributes, all_versions
 
 
 def version_based_classification(system_paths):
+    start_time = time.time()
     logfile = open("statistics/version_based.log", "w")
     all_versions = []
     for s in system_paths:
@@ -258,9 +259,13 @@ def version_based_classification(system_paths):
                 all_versions.append(project_dir)
     load_data_for_version_based_classification(logfile, CLASSIFY_ATTRIBUTES, all_versions)
     logfile.close()
+    end_time = time.time()
+    print(end_time-start_time)
+
 
 
 def product_based_classification(system_paths):
+    start_time = time.time()
     logfile = open("statistics/product_based.log", "w")
     all_versions = []
     for s in system_paths:
@@ -294,11 +299,15 @@ def product_based_classification(system_paths):
         y_train, y_test = target[train_index], target[test_index]
         classify_by_svm(logfile, classified_testing_file, X_train, X_test, y_train,
                         y_test)
+
         fold_index += 1
     logfile.close()
+    end_time = time.time()
+    print(end_time-start_time)
 
 
 def system_based_classification(system_paths):
+    start_time = time.time()
     logfile = open("statistics/system_based.log", "w")
     for s1 in system_paths:
         logfile.write("testing system: " + s1 + "\n")
@@ -318,9 +327,12 @@ def system_based_classification(system_paths):
                         y_test,
                         test_samples)
     logfile.close()
+    end_time = time.time()
+    print(end_time-start_time)
 
 
 def within_system_classification(system_paths):
+    start_time = time.time()
     logfile = open("statistics/within_system.log", "w")
     for s in system_paths:
         logfile.write("testing system: " + s + "\n")
@@ -337,6 +349,8 @@ def within_system_classification(system_paths):
         logfile.write("---------\n")
         load_data_for_version_based_one_classifier(logfile, CLASSIFY_ATTRIBUTES, all_versions)
     logfile.close()
+    end_time = time.time()
+    print(end_time-start_time)
 
 
 def intrinsic_analysis(system_paths, system_name):

@@ -29,7 +29,7 @@ def fl_with_fp(result_folder, system_paths):
             # multiple_slicing(sys_path, True, True)
 
 
-def calculate_average_rank(system_paths, result_folder, strategy = "remove_fps"):
+def calculate_average_rank(system_paths, result_folder, strategy = "add_test2"):
     # spectrum_expressions = [
     #     "Jaccard", "Tarantula", "Ochiai", "Op2", "Dstar", "Barinel", "Russell_rao", "GP02", "GP03", "GP19"
     # ]
@@ -50,7 +50,7 @@ def calculate_average_rank(system_paths, result_folder, strategy = "remove_fps")
 
                 col_names = df.columns[[0,2,3]].tolist()
 
-                sliced_data = filter_lower_rank_stmts(sliced_data)
+                # sliced_data = filter_lower_rank_stmts(sliced_data)
 
                 sliced_data[:, 0] = sliced_data[:, 0].astype(np.object_)
                 # 再执行前缀拼接（此时不会截断，因为object dtype支持任意长度字符串）

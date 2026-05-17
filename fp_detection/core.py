@@ -1,6 +1,7 @@
 import csv
 import os
 import random
+import time
 from platform import system_alias
 
 import numpy as np
@@ -65,7 +66,74 @@ def ablation_analysis(system_paths, log_path):
             total_target = np.concatenate((total_target, target)) if total_target.size > 0 else target
         overall_performance_measurement(total_target, total_pred, logfile, i)
 
+
+def ablation_analysis2(system_paths, log_path):
+    logfile = open(log_path, "w")
+    # 遍历消融后缀 _0, _1 ... _9
+    for suffix_i in range(10):  # 改这里：0-9 对应后缀
+        total_pred = np.array([])
+        total_target = np.array([])
+
+        for s in system_paths:
+            print(s)
+            attribute_temp = []
+            all_versions = []
+
+            for b in system_paths[s]:
+                mutated_projects = list_dir(system_paths[s][b])
+                for project in mutated_projects:
+                    project_dir = join_path(system_paths[s][b], project)
+                    attribute_file_path = join_path(project_dir, attribute_file)
+                    if not os.path.isfile(attribute_file_path):
+                        continue
+                    all_versions.append(project_dir)
+
+                for version_dir in all_versions:
+                    attribute_file_path = join_path(version_dir, attribute_file)
+                    df = pandas.read_csv(attribute_file_path)
+                    attribute_temp.append(df)
+
+            # 合并所有属性数据
+            attributes = pandas.concat(attribute_temp)
+            target = attributes.iloc[:, 1].to_numpy()
+            data_df = attributes.iloc[:, 2:]  # 先不转numpy，用df方便删列
+
+            # ===================== 核心修改开始 =====================
+            # 步骤1：去掉最后 10 列
+            if data_df.shape[1] > 10:
+                data_df = data_df.iloc[:, :-10]
+
+            # 步骤2：删除以 _suffix_i 结尾的列（每次删一个）
+            suffix_to_remove = f"_{suffix_i}"
+            cols_to_keep = [
+                col for col in data_df.columns
+                if not col.endswith(suffix_to_remove)
+            ]
+            data_df = data_df[cols_to_keep]
+            # ===================== 核心修改结束 =====================
+
+            # 转成 numpy 输入模型
+            data = data_df.to_numpy()
+
+            # 训练与预测
+            pl = PUBaggingLearning()
+            pl.prepare_data(data, target, logfile)
+            pred = pl.predict()
+            target = pl.ground_truth_passing_target
+
+            # 累积结果
+            total_pred = np.concatenate((total_pred, pred)) if total_pred.size > 0 else pred
+            total_target = np.concatenate((total_target, target)) if total_target.size > 0 else target
+
+        # 输出当前消融实验结果
+        overall_performance_measurement(total_target, total_pred, logfile, suffix_i)
+        logfile.write(f"=============================================\n")
+        print(f"✅ Ablation on suffix _{suffix_i} finished\n")
+
+    logfile.close()
+
 def product_based_classification(system_paths, log_path):
+    start_time = time.time()
     logfile = open(log_path, "w")
     total_pred = np.array([])  # 初始化为空ndarray
     total_target = np.array([])
@@ -96,20 +164,22 @@ def product_based_classification(system_paths, log_path):
         ])
         data = data[:, keep_cols]
         
-        pl = KMeansClassifier()
+        # pl = KMeansClassifier()
         # pl = KNNClassifier()
         # pl = IsolationForestFPClassifier()
         # pl = OneClassSVMPFClassifier()
-        # pl = PUBaggingLearning()
+        pl = PUBaggingLearning()
         # pl = TwoStepPULearningClassifier()
         pl.prepare_data(data, target, logfile)
         pred = pl.predict()
         target = pl.ground_truth_passing_target
         total_pred = np.concatenate((total_pred, pred)) if total_pred.size > 0 else pred
         total_target = np.concatenate((total_target, target)) if total_target.size > 0 else target
-        overall_performance_measurement(target, pred,logfile, s)
-        write_classified_result2(pred, systems, 0, classified_testing_file)
-    overall_performance_measurement(total_target, total_pred, logfile, "total")
+        # overall_performance_measurement(target, pred,logfile, s)
+        # write_classified_result2(pred, systems, 0, classified_testing_file)
+    end_time = time.time()
+    print(end_time - start_time)
+    # overall_performance_measurement(total_target, total_pred, logfile, "total")
     # classify_by_different_classifiers(logfile, classified_testing_file, X_train, X_test, y_train,
     #                                   y_test)
     # classify_by_svm(logfile, classified_result_file, X_train, X_test, y_train, y_test, test_samples)
@@ -143,6 +213,7 @@ def within_system_classification(system_paths, log_path):
     overall_performance_measurement(total_target, total_pred, logfile, "total")
 
 def dataset_based_classification(system_paths, log_path):
+    start_time = time.time()
     logfile = open(log_path, "w")
     attribute_temp = []
     for s in system_paths:
@@ -166,7 +237,9 @@ def dataset_based_classification(system_paths, log_path):
     pl.prepare_data(data, target, logfile)
     pred = pl.predict()
     target = pl.ground_truth_passing_target
-    overall_performance_measurement(target, pred,logfile, "total")
+    # overall_performance_measurement(target, pred,logfile, "total")
+    end_time = time.time()
+    print(end_time - start_time)
 
 def load_systems(system_set):
     systems = {}
